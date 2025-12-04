@@ -156,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
                     Weather previsao = new Weather(data, tempMin, tempMax, descricao, umidade, icone);
                     listaDadosPrevisao.add(previsao);
 
+                    Log.d("PREVISAO_DEBUG", "Dia: " + data + ", TempMax: " + tempMax + ", Desc: " + descricao);
                 }
 
                 adaptadorPrevisao.notifyDataSetChanged();
