@@ -1,4 +1,4 @@
-# WeatherViewer App - Consumo de Web Service de Previsão do Tempo
+# WeatherViewer App - Atividade Prática Individual: Consumo de Web Service de Previsão do Tempo
 
 ## 1. Informações do Projeto
 
@@ -8,19 +8,20 @@
 | **Curso** | Sistemas de Informação |
 | **Período e Disciplina** | 6° - Programação III |
 
-## 2. Descrição da Aplicação
+## 2. Contexto e Descrição da Aplicação
 
-O **WeatherViewer App** é um aplicativo Android desenvolvido em Java, seguindo a arquitetura de Views e o padrão de consumo de API apresentado no Capítulo 7 do livro "Android 6 for Programmers".
+Este projeto é o resultado da **Atividade Prática Individual** da disciplina de Programação III, que consiste no desenvolvimento de uma aplicação cliente de previsão do tempo para Android. O desenvolvimento toma como referência direta o **Capítulo 7 – WeatherViewer App** do livro utilizado na disciplina, aplicando seus conceitos de consumo de Web Service REST.
 
-O aplicativo permite ao usuário consultar a previsão do tempo para uma cidade específica, consumindo um Web Service REST hospedado na AWS. Os dados são processados a partir de uma resposta JSON e exibidos em uma lista (ListView), utilizando o padrão ViewHolder para otimização de performance.
+O **WeatherViewer App** é um aplicativo Android desenvolvido em Java que consome uma API de previsão do tempo customizada, disponibilizada pelo professor e hospedada na AWS. O aplicativo realiza requisições HTTP em uma thread separada (`AsyncTask`), processa a resposta em formato JSON e exibe os dados em uma lista personalizada (`ListView`).
 
-**Funcionalidades:**
-*   Entrada de texto para o nome da cidade (formato: Cidade,Estado,País).
-*   Botão de consulta (FloatingActionButton).
-*   Requisição HTTP assíncrona (AsyncTask e HttpURLConnection).
-*   Processamento de JSON (org.json).
-*   Exibição dos dados (data, temperatura min/max, umidade, descrição e ícone emoji).
-*   Tratamento básico de erros de rede e requisição.
+### Funcionalidades Implementadas
+
+*   **Referência Bibliográfica:** Baseado na arquitetura e padrões de consumo de API do Capítulo 7 do livro "Android 6 for Programmers".
+*   **Entrada de Dados:** Campo de texto para o nome da cidade no formato **Cidade,Estado,País** (ex: `Passos,MG,BR`).
+*   **Requisição Assíncrona:** Utilização de `AsyncTask` e `HttpURLConnection` para realizar a consulta à API.
+*   **Processamento de JSON:** Análise e extração dos dados de previsão (data, temperatura min/max, umidade, descrição e ícone) utilizando a biblioteca `org.json`.
+*   **Exibição:** Apresentação dos dados em uma lista otimizada com o padrão `ViewHolder`.
+*   **Tratamento de Erros (Requisito Adicional):** Implementação de validação para entradas incorretas de cidade. Caso a API retorne um erro **HTTP 404 (Not Found)**, o aplicativo exibe uma mensagem clara ao usuário: **"Cidade não encontrada. Por favor, insira uma entrada correta (ex: Passos,MG,BR)."**
 
 ## 3. Instruções para Execução
 
@@ -30,7 +31,7 @@ O aplicativo permite ao usuário consultar a previsão do tempo para uma cidade 
     ```
 2.  **Abra no Android Studio:**
     *   Abra o Android Studio e selecione `File > Open`.
-    *   Navegue até a pasta do projeto clonado e selecione-a.
+    *   Navegue até a pasta do projeto clonado e selecione a subpasta `WeatherViewer`.
 3.  **Sincronize o Gradle:**
     *   Aguarde o Android Studio sincronizar o projeto e baixar as dependências necessárias.
 4.  **Execute:**
@@ -39,32 +40,35 @@ O aplicativo permite ao usuário consultar a previsão do tempo para uma cidade 
 5.  **Teste:**
     *   No campo de texto, digite a cidade no formato **Cidade,Estado,País** (Ex: `Passos,MG,BR`).
     *   Clique no botão flutuante (lupa) para buscar a previsão.
+    *   **Teste a Validação:** Insira uma cidade inexistente (Ex: `CidadeInvalida,XX,YY`) para verificar a mensagem de erro.
 
 ## 4. Exemplo da URL Utilizada na Requisição
 
-A URL é construída dinamicamente, mas o formato utilizado para a consulta de 5 dias é:
+A API utilizada é a fornecida pelo professor, mantendo a mesma proposta do Capítulo 7. A URL é construída dinamicamente no código (`MainActivity.java`) com os parâmetros obrigatórios: `city`, `days` (fixado em 5) e `APPID`.
+
+**Endpoint Base:**
+`http://agent-weathermap-env-env.eba-6pzgqekp.us-east-2.elasticbeanstalk.com/api/weather`
+
+**Chave de API (APPID):**
+`AgentWeather2024_a8f3b9c1d7e2f5g6h4i9j0k1l2m3n4o5p6`
+
+**Exemplo de URL Completa (para a cidade de Passos, MG, Brasil):**
 
 ```
-http://agent-weathermap-env-env.eba-6pzgqekp.us-east-2.elasticbeanstalk.com/api/weather?city=[CIDADE,ESTADO,PAÍS]&days=5&APPID=AgentWeather2024_a8f3b9c1d7e2f5g6h4i9j0k1l2m3n4o5p6
+http://agent-weathermap-env-env.eba-6pzgqekp.us-east-2.elasticbeanstalk.com/api/weather?city=Passos,MG,BR&days=5&APPID=AgentWeather2024_a8f3b9c1d7e2f5g6h4i9j0k1l2m3n4o5p6
 ```
 
-## 5. Observações Importantes
+![Retorno Swagger](assets/consultaSwagger.png)
+![Retorno JSON](assets/retornoJSON.png)
 
-### Variação dos Dados da Previsão:
+## 5. Observações e Requisitos Atendidos
 
-Foi observado que os dados retornados pela API (temperaturas, descrições) podem variar ligeiramente entre consultas consecutivas (tanto no aplicativo quanto no Swagger).
+O projeto atende a todos os requisitos da Atividade Prática Individual, incluindo o tratamento de erros de requisição para cidades não encontradas.
 
-**Esta variação é uma característica da API dinâmica de previsão do tempo e não um erro de implementação do aplicativo.** O código do aplicativo lê e exibe com precisão os dados fornecidos pela API no momento exato da requisição. Testes de Logcat confirmaram que o aplicativo está lendo o JSON corretamente.
-
-**Exemplo:**
-<p align="center">
-![Filtros Usados no Swagger](/consultaSwagger.png)
-</p>
+*   **Tratamento de Erros:** Implementado para erros de rede, JSON inválido e, especificamente, para o erro **404 (Cidade Não Encontrada)**.
+*   **Estrutura de Código:** Segue as boas práticas de separação de responsabilidades (Activity, Adapter, Modelo de Dados) e utiliza `AsyncTask` para operações de rede.
 
 <p align="center">
-  ![Retorno da Consulta no Swagger - JSON](/retornoJSON.png)
-</p>
-
-<p align="center">
-  ![Retorno no Aplicativo](/aplicacao.png)
+  <img src="assets/consultaValida.png" alt="Consulta de Cidade Válida" width="200"/>
+  <img src="assets/consultaInvalida.png" alt="Consulta de Cidade Inválida" width="200"/>
 </p>

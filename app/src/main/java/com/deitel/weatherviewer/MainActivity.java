@@ -3,7 +3,7 @@ package com.deitel.weatherviewer;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
+import android.util.Log; // Importado para o Log.d de debug
 import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -32,8 +32,18 @@ public class MainActivity extends AppCompatActivity {
     private static final String APP_ID = "AgentWeather2024_a8f3b9c1d7e2f5g6h4i9j0k1l2m3n4o5p6";
     private static final int DIAS = 5;
 
+    private static class ResultadoBusca {
+        String cidadeSolicitada;
+        String respostaJson;
+
+        ResultadoBusca(String cidadeSolicitada, String respostaJson) {
+            this.cidadeSolicitada = cidadeSolicitada;
+            this.respostaJson = respostaJson;
+        }
+    }
+
     @Override
-    protected void onCreate(Bundle savedInstanceState ) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -58,7 +68,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private class BuscarPrevisaoTask extends AsyncTask<String, Void, String> {
+    private class BuscarPrevisaoTask extends AsyncTask<String, Void, ResultadoBusca> {
+
+        private String cidadeSolicitada;
 
         @Override
         protected void onPreExecute() {
@@ -66,11 +78,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected String doInBackground(String... params) {
-            String cidade = params[0];
+        protected ResultadoBusca doInBackground(String... params) {
+            cidadeSolicitada = params[0];
 
             String urlString = String.format("%s?city=%s&days=%d&APPID=%s",
-                    URL_BASE, cidade, DIAS, APP_ID);
+                    URL_BASE, cidadeSolicitada, DIAS, APP_ID);
 
             HttpURLConnection conexaoUrl = null;
             BufferedReader leitor = null;
@@ -84,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
                 int codigoResposta = conexaoUrl.getResponseCode();
                 if (codigoResposta != HttpURLConnection.HTTP_OK) {
-                    return "ERRO_HTTP:" + codigoResposta;
+                    return new ResultadoBusca(cidadeSolicitada, "ERRO_HTTP:" + codigoResposta);
                 }
 
                 leitor = new BufferedReader(new InputStreamReader(conexaoUrl.getInputStream()));
@@ -95,9 +107,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 respostaJson = buffer.toString();
 
+                return new ResultadoBusca(cidadeSolicitada, respostaJson);
+
             } catch (Exception e) {
                 e.printStackTrace();
-                return "ERRO_REDE";
+                return new ResultadoBusca(cidadeSolicitada, "ERRO_REDE");
             } finally {
                 if (conexaoUrl != null) {
                     conexaoUrl.disconnect();
@@ -110,18 +124,24 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-            return respostaJson;
         }
 
         @Override
-        protected void onPostExecute(String resultado) {
-            if (resultado == null || resultado.startsWith("ERRO_")) {
+        protected void onPostExecute(ResultadoBusca resultado) {
+            String respostaJson = resultado.respostaJson;
+            String cidadeSolicitada = resultado.cidadeSolicitada.trim();
+
+            if (respostaJson == null || respostaJson.startsWith("ERRO_")) {
                 String mensagemErro = "Erro desconhecido.";
-                if (resultado != null) {
-                    if (resultado.startsWith("ERRO_HTTP")) {
-                        String codigo = resultado.split(":")[1];
-                        mensagemErro = "Erro na requisição HTTP: " + codigo + ". Verifique se a cidade está no formato correto (Cidade,Estado,País).";
-                    } else if (resultado.equals("ERRO_REDE")) {
+                if (respostaJson != null) {
+                    if (respostaJson.startsWith("ERRO_HTTP")) {
+                        String codigo = respostaJson.split(":")[1];
+                        if (codigo.equals("404")) {
+                            mensagemErro = "Cidade não encontrada. Por favor, insira uma entrada correta (ex: Passos,MG,BR).";
+                        } else {
+                            mensagemErro = "Erro na requisição HTTP: " + codigo + ". Verifique se a cidade está no formato correto (Cidade,Estado,País).";
+                        }
+                    } else if (respostaJson.equals("ERRO_REDE")) {
                         mensagemErro = "Erro de conexão. Verifique sua permissão de Internet e a URL da API.";
                     }
                 }
@@ -134,14 +154,21 @@ public class MainActivity extends AppCompatActivity {
             try {
                 listaDadosPrevisao.clear();
 
-                JSONObject objetoJson = new JSONObject(resultado);
+                JSONObject objetoJson = new JSONObject(respostaJson);
+
+                String cidadeRetornada = objetoJson.optString("city", "").trim();
 
                 if (!objetoJson.has("days")) {
-                    Toast.makeText(MainActivity.this, "Resposta da API inválida. Verifique o formato JSON.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Resposta da API inválida. Chave 'days' ausente.", Toast.LENGTH_LONG).show();
                     return;
                 }
 
                 JSONArray arrayDias = objetoJson.getJSONArray("days");
+
+                if (arrayDias.length() == 0) {
+                    Toast.makeText(MainActivity.this, "Nenhuma previsão encontrada para a cidade informada.", Toast.LENGTH_LONG).show();
+                    return;
+                }
 
                 for (int i = 0; i < arrayDias.length(); i++) {
                     JSONObject objetoDia = arrayDias.getJSONObject(i);
@@ -156,11 +183,11 @@ public class MainActivity extends AppCompatActivity {
                     Weather previsao = new Weather(data, tempMin, tempMax, descricao, umidade, icone);
                     listaDadosPrevisao.add(previsao);
 
-                    Log.d("PREVISAO_DEBUG", "Dia: " + data + ", TempMax: " + tempMax + ", Desc: " + descricao);
+                    // Log.d("PREVISAO_DEBUG", "Dia: " + data + ", TempMax: " + tempMax + ", Desc: " + descricao);
                 }
 
                 adaptadorPrevisao.notifyDataSetChanged();
-                Toast.makeText(MainActivity.this, "Previsão atualizada para " + objetoJson.getString("city"), Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Previsão atualizada para " + cidadeRetornada, Toast.LENGTH_SHORT).show();
 
             } catch (Exception e) {
                 e.printStackTrace();
